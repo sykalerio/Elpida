@@ -1,4 +1,4 @@
-cabal-version:       3.6
+cabal-version:       3.0
 
 name:                assignment-icalendar
 
@@ -16,7 +16,7 @@ executable icalendar
                       , Features
 
   build-depends:       array,
-                       base >=4.14 && <4.15,
+                       base >=4.14,
                        boxes,
                        containers,
                        uu-tc == 2015.1.1
