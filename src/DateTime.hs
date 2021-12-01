@@ -4,7 +4,8 @@ module DateTime where
 import ParseLib.Abstract
 import Prelude hiding ((<$), ($>), (<*), (*>), sequence)
 import Data.Tuple
-import Data.Time hiding (Day, parseTime)
+import qualified Data.Time as TF
+import Data.Maybe
 
 -- | "Target" datatype for the DateTime parser, i.e, the parser should produce elements of this type.
 data DateTime = DateTime { date :: Date
@@ -18,14 +19,20 @@ data Date = Date { year  :: Year
     deriving (Eq, Ord)
 
 newtype Year  = Year  { runYear  :: Int } deriving (Eq, Ord)
-instance Show Year where
-  show Year{..} = show runYear
 newtype Month = Month { runMonth :: Int } deriving (Eq, Ord)
-instance Show Month where
-  show Month{..} = show runMonth
 newtype Day   = Day   { runDay   :: Int } deriving (Eq, Ord)
+
+
+padZeros :: Show a => Int -> a -> String
+padZeros n x = take (n - length sx) (cycle "0") ++ sx 
+  where sx = show x
+
+instance Show Year where
+  show Year{..} = padZeros 4 runYear
+instance Show Month where
+  show Month{..} = padZeros 2 runMonth
 instance Show Day where
-  show Day{..} = show runDay
+  show Day{..} = padZeros 2 runDay
 
 data Time = Time { hour   :: Hour
                  , minute :: Minute
@@ -33,21 +40,22 @@ data Time = Time { hour   :: Hour
     deriving (Eq, Ord)
 
 newtype Hour   = Hour   { runHour   :: Int } deriving (Eq, Ord)
-instance Show Hour where
-  show Hour{..} = show runHour
 newtype Minute = Minute { runMinute :: Int } deriving (Eq, Ord)
-instance Show Minute where
-  show Minute{..} = show runMinute
 newtype Second = Second { runSecond :: Int } deriving (Eq, Ord)
+
+instance Show Hour where
+  show Hour{..} = padZeros 2 runHour
+instance Show Minute where
+  show Minute{..} = padZeros 2 runMinute
 instance Show Second where
-  show Second{..} = show runSecond
+  show Second{..} = padZeros 2 runSecond
 
 
 -- Exercise 1
 parseDateTime :: Parser Char DateTime
 parseDateTime = DateTime <$> parseDate
                          <*  symbol 'T'
-                         <*> timeParser
+                         <*> parseTime
                          <*> parseUTC
 
 parseNatOfNLength :: Int -> Parser Char Int
@@ -62,8 +70,8 @@ parseDate =
     <*> (Month <$> parseNatOfLengthTwo)
     <*> (Day <$> parseNatOfLengthTwo)
 
-timeParser :: Parser Char Time
-timeParser = Time <$> (Hour <$> parseNatOfLengthTwo)
+parseTime :: Parser Char Time
+parseTime = Time <$> (Hour <$> parseNatOfLengthTwo)
                 <*> (Minute <$> parseNatOfLengthTwo)
                 <*> (Second <$> parseNatOfLengthTwo)
 
@@ -75,7 +83,6 @@ parseUTC = option (True <$ symbol 'Z') False
 lookup' :: Eq b => b -> [(a, b)] -> Maybe a
 lookup' x ys = lookup x $ map swap ys
 
--- run :: Parser a b -> [a] -> Maybe b
 run :: Eq a => Parser a b -> [a] -> Maybe b
 run p input = lookup' [] $ parse p input
 
@@ -83,11 +90,14 @@ run p input = lookup' [] $ parse p input
 -- Record syntax documentation: https://devtut.github.io/haskell/record-syntax.html
 printDateTime :: DateTime -> String
 printDateTime (DateTime d t u) = printDate d ++ printTime t ++ (if u then "Z" else "")
-  where
-    printDate :: Date -> String
-    printDate Date{..} = show year ++ show month ++ show day
-    printTime :: Time -> String
-    printTime Time{..} = show hour ++ show minute ++ show second
+
+instance Show Date where
+  show = printDate
+
+printDate :: Date -> String
+printDate Date{..} = show year ++ show month ++ show day
+printTime :: Time -> String
+printTime Time{..} = show hour ++ show minute ++ show second
 
 -- -- Exercise 4
 parsePrint :: String -> Maybe String
@@ -98,3 +108,9 @@ parsePrint s = printDateTime <$> run parseDateTime s
 -- Exercise 5
 checkDateTime :: DateTime -> Bool
 checkDateTime = undefined
+
+checkDate :: String -> Bool
+checkDate s = isJust (TF.parseTimeM False TF.defaultTimeLocale "%0Y%0m%0d" s :: Maybe TF.Day)
+
+checkTime :: String -> Bool
+checkTime s = isJust (TF.parseTimeM False TF.defaultTimeLocale "%0H%M" s :: Maybe TF.TimeOfDay)
