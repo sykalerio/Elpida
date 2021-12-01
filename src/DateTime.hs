@@ -94,6 +94,9 @@ printDateTime (DateTime d t u) = printDate d ++ printTime t ++ (if u then "Z" el
 instance Show Date where
   show = printDate
 
+instance Show Time where
+  show = printTime
+
 printDate :: Date -> String
 printDate Date{..} = show year ++ show month ++ show day
 printTime :: Time -> String
@@ -107,10 +110,17 @@ parsePrint s = printDateTime <$> run parseDateTime s
 -- https://hackage.haskell.org/package/number-length
 -- Exercise 5
 checkDateTime :: DateTime -> Bool
-checkDateTime = undefined
+checkDateTime DateTime{..} = undefined --checkDate date && checkTime time && (\u -> u || not u) utc
 
-checkDate :: String -> Bool
-checkDate s = isJust (TF.parseTimeM False TF.defaultTimeLocale "%0Y%0m%0d" s :: Maybe TF.Day)
+testCheckDate :: Bool
+testCheckDate = checkDate (Date (Year 9999) (Month 12) (Day 31))
 
-checkTime :: String -> Bool
-checkTime s = isJust (TF.parseTimeM False TF.defaultTimeLocale "%0H%M" s :: Maybe TF.TimeOfDay)
+checkDate :: Date -> Bool
+checkDate d = isJust (TF.parseTimeM False TF.defaultTimeLocale "%0Y%0m%0d" (show d) :: Maybe TF.Day)
+
+testTimeCheck :: Bool
+testTimeCheck = checkTime (Time (Hour 23) (Minute 59) (Second 59))
+
+checkTime :: Time -> Bool
+checkTime t@Time{..}  | runSecond second > 59 = False
+                      | otherwise = isJust (TF.parseTimeM False TF.defaultTimeLocale "%0H%M%S" (show t) :: Maybe TF.TimeOfDay)

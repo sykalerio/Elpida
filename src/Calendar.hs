@@ -4,6 +4,7 @@ import ParseLib.Abstract
 import Prelude hiding ((<$), ($>), (<*), (*>), sequence)
 import DateTime
 
+-- https://github.com/chrra/iCalendar/blob/master/Text/ICalendar/Types.hs
 
 -- Exercise 6
 data Calendar = Calendar
